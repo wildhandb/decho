@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [ "$(id -u)" -ne "0" ]; then
+    exit 1
+fi
+
 clear
 
 exec 3>&1
@@ -185,6 +189,21 @@ e_print "casaos access url: $(hostname -I | awk '{print $1}'):$(grep '^port=' /e
 e_print "casaos installation has been completed"
 
 e_color "$YELLOW" "\n[WireGuard]"
+e_print ""
+if grep -q "^net.ipv4.ip_forward" /etc/sysctl.conf; then
+    sudo sed -i 's/^net.ipv4.ip_forward=.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+else
+    echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+fi
+if grep -q "^net.ipv6.conf.all.forwarding" /etc/sysctl.conf; then
+    sudo sed -i 's/^net.ipv6.conf.all.forwarding=.*/net.ipv6.conf.all.forwarding=1/' /etc/sysctl.conf
+else
+    echo "net.ipv6.conf.all.forwarding = 1" | sudo tee -a /etc/sysctl.conf
+fi
+apt-get install wireguard
+wg genkey | tee /etc/wireguard/private.key | wg pubkey | tee /etc/wireguard/public.key
+
+
 e_color "$YELLOW" "\n[CloudPanel]"
 e_color "$YELLOW" "\n[mailcow]"
 
